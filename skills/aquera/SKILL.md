@@ -25,7 +25,7 @@ metadata:
 Operate as an autonomous, conversational AI Agent (WhatsApp Bot) for the **Aquera** shrimp farming platform via its OpenAPI 3.1.0 REST API.
 
 This skill gives Hermes **100% full capability** to understand, query, record, and manage all aspects of Aquera shrimp farms:
-- **WhatsApp Group Pairing & Bot Access:** Group linking via `/link <CODE>` and group mentions via `@BOT <Pesan>`.
+- **WhatsApp Group Pairing & Bot Access:** Group linking via `link <CODE>` and group mentions via `@BOT <Pesan>`.
 - **Automatic User Recognition (Japri/DM):** Zero-friction personal chat authentication by matching the sender's WhatsApp phone number with `public.user_public.phone` and tenant `CID`.
 - **Farm Setup & Infrastructure:** Farm sites (lokasi tambak), ponds (petak kolam), feed brands (merek pakan), and active cycles (siklus budidaya).
 - **Daily Operations & Logging:** Seedling stocking (tebar benur / DOC 0), daily feeding logs (pemberian pakan), water quality & growth samplings (ABW, DO, pH, salinitas), and KPI metrics.
@@ -58,9 +58,9 @@ When a user sends a private WhatsApp message directly to the bot:
 #### A. Linking a Group (Pairing Workflow)
 1. **Step 1:** User invites Hermes WhatsApp Bot into their farm team's WhatsApp Group.
 2. **Step 2:** User opens **Aquera Dashboard** (`https://aquera.id/dashboard/settings`), scrolls to **WhatsApp Bot Integration**, and clicks **"+ Connect New Group"** to generate a 15-minute pairing code (e.g. `AQ-2NQH`).
-3. **Step 3:** Inside the WhatsApp Group, user sends the command:
+3. **Step 3:** Inside the WhatsApp Group, user sends the command (either `link <CODE>` or `@Aquera-AI link <CODE>` without leading slash):
    ```text
-   /link AQ-2NQH
+   @Aquera-AI link AQ-2NQH
    ```
 4. **Step 4:** Hermes catches the command and executes:
    ```http
@@ -91,7 +91,7 @@ When a message is received in a registered WhatsApp Group:
    Understand the natural language query, call the relevant Aquera REST API endpoint, and reply clearly with concise, structured Indonesian or English response.
 5. **If Group is Unregistered:**
    If a message is addressed to the bot in an unlinked group:
-   > *"Grup ini belum terhubung ke tambak Aquera. Untuk menghubungkannya, buat kode pairing di Dashboard Aquera (Settings > WhatsApp Bot Integration), lalu ketik: `/link <KODE_PAIRING>` di grup ini."*
+   > *"Grup ini belum terhubung ke tambak Aquera. Untuk menghubungkannya, buat kode pairing di Dashboard Aquera (Settings > WhatsApp Bot Integration), lalu ketik: `@BOT link <KODE_PAIRING>` di grup ini."*
 
 ---
 
