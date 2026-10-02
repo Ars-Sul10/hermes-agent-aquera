@@ -1,187 +1,179 @@
 ---
 name: aquera
-description: Operate Aquera shrimp farm ponds, logs, harvests, team, and WhatsApp bot integration.
-version: 1.1.0
+description: Autonomous WhatsApp Bot & AI Agent for Aquera Shrimp Farm Management, Group Pairing, Phone Recognition, and 100% Full Farm Operations.
+version: 1.2.0
 author: Tony + Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [aquera, shrimp-farming, aquaculture, openapi, farm-management, whatsapp-bot]
+    tags: [aquera, shrimp-farming, aquaculture, openapi, farm-management, whatsapp-bot, direct-message, group-pairing]
     category: operations
     config:
       aquera_base_url:
-        description: Base URL of the Aquera API
+        description: Base URL of the Aquera REST API
         default: https://aquera.id/api/v1
       aquera_api_secret:
-        description: Secret token for Aquera API authentication (AQUERA_API_SECRET or AQUERA_API_SECRET_KEY)
+        description: Secret token for Aquera API authentication (AQUERA_API_SECRET)
         secret: true
       aquera_cid:
-        description: Default tenant organization CID (auto-resolved per user/group via WhatsApp integration)
+        description: Tenant Organization CID (auto-resolved automatically per user phone or group JID)
 ---
 
-# Aquera Shrimp Farming Skill
+# Aquera Smart Shrimp Farming Skill
 
-Manage and operate the Aquera smart shrimp farming platform via its OpenAPI 3.1.0 REST API. This skill allows Hermes to read, record, update, and manage shrimp farm data including ponds, farming cycles, seedling stocking, daily feeding logs, water and growth samplings, harvests, sales invoices, team member contacts (including WhatsApp phone numbers), and WhatsApp group integration.
+Operate as an autonomous, conversational AI Agent (WhatsApp Bot) for the **Aquera** shrimp farming platform via its OpenAPI 3.1.0 REST API.
 
-## When to Use
-
-Use this skill when:
-- **WhatsApp Inbound Messaging:** Resolving user identity, permissions, and tenant CID automatically from a WhatsApp sender phone number (`GET /user-context?phone=...`).
-- **WhatsApp Group Management:** Verifying whether a WhatsApp group is registered to a farm (`GET /whatsapp-groups?group_jid=...`), or linking a group via pairing codes (`POST /whatsapp/link`).
-- **Team Management:** Viewing team members with their registered phone numbers (`GET /team`), or updating a member's phone number, role, or designation (`PUT /team` or `PUT /user-context`).
-- **Farm Operations & Logging:** Recording daily pond operations: feed distribution (`feed-log`), water quality/growth measurements (`sampling`), or seedling stocking (`stocking`).
-- **Farm Setup & Metrics:** Viewing KPI metrics (`summary`), farm sites (`farm-sites`), ponds (`ponds`), feed brands (`feed-brands`), or cycles (`cycles`).
-- **Harvest & Invoicing:** Recording harvest batches (`harvest`) or generating buyer invoices (`invoice`).
-
-Do not use this skill for unrelated farm analytics or direct database access without the API layer.
-
-## Prerequisites
-
-- Aquera REST API specification: `./openapi.json`.
-- Environment variables or configuration keys:
-  - `AQUERA_BASE_URL`: Base API URL (e.g., `https://aquera.id/api/v1`).
-  - `AQUERA_API_SECRET` (or `AQUERA_API_SECRET_KEY`): API Secret token sent via `Authorization: Bearer <SECRET>` or `x-api-key`.
-  - `AQUERA_CID`: Target organization tenant ID (sent via `x-cid: <CID>`). When handling WhatsApp messages, this can be automatically resolved via phone or group JID lookup.
-- Network access from Hermes to the Aquera API host.
-
-## Quick Reference
-
-| Action | Method | Path | Required Headers | Key Parameters |
-|---|---|---|---|---|
-| Health Check | `GET` | `/health` | (none) | None |
-| Identify User by Phone | `GET` | `/user-context?phone={phone}` | `Authorization` | `phone` (format: `628xxx` or `08xxx`) |
-| Get User Context | `GET` | `/user-context` | `Authorization`, `x-cid` | `user_id` (optional) |
-| Update User Phone / Profile | `PUT` | `/user-context` | `Authorization` | `phone`, `user_id` (optional), `full_name` |
-| List Team & Contacts | `GET` | `/team` | `Authorization`, `x-cid` | None (returns `phone`, `full_name`, `role`) |
-| Update Team Member Phone | `PUT` | `/team` | `Authorization`, `x-cid` | `id` or `user_id`, `phone`, `designation` |
-| Lookup WhatsApp Group | `GET` | `/whatsapp-groups?group_jid={jid}` | `Authorization` | `group_jid` (e.g. `120363xxx@g.us`) |
-| List WhatsApp Groups | `GET` | `/whatsapp-groups` | `Authorization`, `x-cid` | `is_active` (optional) |
-| Register WhatsApp Group | `POST` | `/whatsapp-groups` | `Authorization`, `x-cid` | `group_jid`, `group_name`, `paired_by` |
-| Update WhatsApp Group | `PUT` | `/whatsapp-groups` | `Authorization` | `id` or `group_jid`, `is_active`, `group_name` |
-| Disconnect WhatsApp Group | `DELETE` | `/whatsapp-groups?group_jid={jid}` | `Authorization` | `group_jid` or `id` |
-| Link Group via Pairing Code | `POST` | `/whatsapp/link` | `Authorization` | `code`, `group_jid`, `sender_phone` |
-| Dashboard KPI | `GET` | `/summary` | `Authorization`, `x-cid` | None |
-| List Ponds | `GET` | `/ponds` | `Authorization`, `x-cid` | None |
-| Create Pond | `POST` | `/ponds` | `Authorization`, `x-cid` | `farm_site_id`, `name`, `area_m2` |
-| Log Feed | `POST` | `/feed-log` | `Authorization`, `x-cid` | `cycle_id`, `pond_id`, `qty_kg`, `fed_at` |
-| Log Sampling | `POST` | `/sampling` | `Authorization`, `x-cid` | `cycle_id`, `pond_id`, `sampled_at`, `abw_g` |
-| Record Harvest | `POST` | `/harvest` | `Authorization`, `x-cid` | `pond_id`, `cycle_id`, `harvest_type`, `details` |
-| Create Invoice | `POST` | `/invoice` | `Authorization`, `x-cid` | `buyer_name`, `invoice_date`, `items` |
+This skill gives Hermes **100% full capability** to understand, query, record, and manage all aspects of Aquera shrimp farms:
+- **WhatsApp Group Pairing & Bot Access:** Group linking via `/link <CODE>` and group mentions via `@BOT <Pesan>`.
+- **Automatic User Recognition (Japri/DM):** Zero-friction personal chat authentication by matching the sender's WhatsApp phone number with `public.user_public.phone` and tenant `CID`.
+- **Farm Setup & Infrastructure:** Farm sites (lokasi tambak), ponds (petak kolam), feed brands (merek pakan), and active cycles (siklus budidaya).
+- **Daily Operations & Logging:** Seedling stocking (tebar benur / DOC 0), daily feeding logs (pemberian pakan), water quality & growth samplings (ABW, DO, pH, salinitas), and KPI metrics.
+- **Harvest & Invoicing:** Partial/total harvests (panen) and shrimp buyer sales invoices (faktur penjualan).
+- **Team & Contact Management:** Team member directory, designations, and registered WhatsApp contact numbers.
 
 ---
 
-## WhatsApp Bot Integration Workflow
+## Complete WhatsApp Bot Interaction Workflows
 
-Hermes operates as an autonomous WhatsApp Agent for Aquera shrimp farms. Follow these standard procedures when receiving messages:
-
-### 1. Inbound Direct Message (Personal Chat)
-When receiving a message from an individual WhatsApp number:
-1. Extract the sender's phone number (format internationally, e.g. `6285882955873` or `085882955873`).
-2. Call `GET /api/v1/user-context?phone=<SENDER_PHONE>` with `Authorization: Bearer <AQUERA_API_SECRET>`.
-3. If the user is found (`success: true`):
-   - Extract `user_context.organization_id` (this is the `CID`), `user_context.full_name`, and `user_context.role`.
-   - Set the `x-cid` header to this `organization_id` for all subsequent operations during the conversation.
-   - Greet the user by their `full_name` and confirm their organization context.
-4. If the user is not found (`404 USER_PHONE_NOT_FOUND`):
+### 1. Inbound Direct Message (Personal Chat / Japri)
+When a user sends a private WhatsApp message directly to the bot:
+1. **Extract Sender Phone Number:** Format internationally (e.g. `6285155256233` or `085882955873`).
+2. **Resolve User Identity & Tenant CID:**
+   Call `GET /api/v1/user-context?phone=<SENDER_PHONE>` with `Authorization: Bearer <AQUERA_API_SECRET>`.
+3. **If User Found (`success: true`):**
+   - Extract `user_context.organization_id` (this is the `CID`), `user_context.full_name`, `user_context.role`, and `user_context.designation`.
+   - Set the `x-cid` header to `user_context.organization_id` for all subsequent API calls in this conversation.
+   - Greet the user personally:
+     > *"Halo Pak/Bu [Nama User] ([Designation / Role])! Ada yang bisa saya bantu terkait operasional tambak Aquera hari ini?"*
+   - Execute any queries or commands requested (e.g., checking pond status, logging feed, viewing summary KPI) with full context.
+4. **If User Not Found (`404 USER_PHONE_NOT_FOUND`):**
    - Reply courteously:
-     > *"Halo! Nomor WhatsApp Anda (`<SENDER_PHONE>`) belum terhubung ke akun Aquera. Silakan login ke Dashboard Aquera > Settings > User Profile & WhatsApp Contact, masukkan nomor Anda, lalu klik Simpan."*
-
-### 2. Inbound Group Chat Message
-When receiving a message inside a WhatsApp group:
-1. Extract the group JID (e.g. `120363012345678901@g.us`).
-2. Call `GET /api/v1/whatsapp-groups?group_jid=<GROUP_JID>`.
-3. If the group is registered and active (`is_active: true`):
-   - Extract `data.cid` and `data.organization_name`.
-   - Use this `CID` as the `x-cid` header.
-   - Also identify the individual sender within the group via `GET /api/v1/user-context?phone=<SENDER_PHONE>` to verify their role and permissions before executing sensitive operations (e.g. logging feed, deleting ponds).
-4. If the group is not registered (`404 GROUP_NOT_FOUND`):
-   - If the user sent a pairing command like `/link AQ-XXXX` or `AQ-XXXX`:
-     - Call `POST /api/v1/whatsapp/link` with:
-       ```json
-       {
-         "code": "AQ-XXXX",
-         "group_jid": "<GROUP_JID>",
-         "group_name": "<GROUP_NAME>",
-         "sender_phone": "<SENDER_PHONE>"
-       }
-       ```
-     - If successful, reply: *"Grup WhatsApp ini berhasil dihubungkan ke <organization_name>!"*
-   - Otherwise, explain:
-     > *"Grup ini belum terhubung ke tambak Aquera. Untuk menghubungkan, minta pemilik tambak membuat kode pairing di Dashboard Aquera (Settings > WhatsApp Bot Integration), lalu ketik: `/link <KODE>` di grup ini."*
+     > *"Halo! Nomor WhatsApp Anda belum terdaftar di akun Aquera. Silakan login ke Dashboard Aquera (https://aquera.id) > Pengaturan (Settings) > **User Profile & WhatsApp Contact**, masukkan nomor WhatsApp Anda, lalu klik Simpan Profil. Setelah itu, Anda bisa langsung menggunakan bot ini tanpa perlu login manual!"*
 
 ---
 
-## Phone Number Management in API v1
+### 2. WhatsApp Group Pairing & Group Chat Interaction
 
-Aquera stores contact phone numbers in two tables:
-1. `public.user_public.phone`: User's primary contact number across the platform.
-2. `public.organization_user.phone`: Member contact number specific to an organization/tenant.
-3. `public.v_whatsapp_users`: Database view combining both columns with organization context for fast AI agent lookups.
+#### A. Linking a Group (Pairing Workflow)
+1. **Step 1:** User invites Hermes WhatsApp Bot into their farm team's WhatsApp Group.
+2. **Step 2:** User opens **Aquera Dashboard** (`https://aquera.id/dashboard/settings`), scrolls to **WhatsApp Bot Integration**, and clicks **"+ Connect New Group"** to generate a 15-minute pairing code (e.g. `AQ-2NQH`).
+3. **Step 3:** Inside the WhatsApp Group, user sends the command:
+   ```text
+   /link AQ-2NQH
+   ```
+4. **Step 4:** Hermes catches the command and executes:
+   ```http
+   POST /api/v1/whatsapp/link
+   Content-Type: application/json
+   Authorization: Bearer <AQUERA_API_SECRET>
 
-### Reading Phone Numbers
-- Call `GET /api/v1/team` to retrieve all organization members with their `phone` and `full_name`.
-- Call `GET /api/v1/user-context` to retrieve current authenticated user's `phone`.
+   {
+     "code": "AQ-2NQH",
+     "group_jid": "<GROUP_JID>",
+     "group_name": "<GROUP_NAME>",
+     "sender_phone": "<SENDER_PHONE>"
+   }
+   ```
+5. **Step 5:** Upon success, Hermes responds in the group:
+   > *"✅ Grup WhatsApp **[Nama Grup]** berhasil dihubungkan ke tambak **[Nama Organisasi]**! Sekarang seluruh anggota grup dapat mengakses data tambak dan mencatat aktivitas operasional dengan mention **@BOT <pertanyaan/perintah>**."*
 
-### Updating Phone Numbers
-- **Update current user:**
-  ```http
-  PUT /api/v1/user-context
-  Content-Type: application/json
-  Authorization: Bearer <SECRET>
-
-  {
-    "user_id": "<USER_UUID>",
-    "phone": "6285882955873"
-  }
-  ```
-- **Update team member contact:**
-  ```http
-  PUT /api/v1/team
-  Content-Type: application/json
-  Authorization: Bearer <SECRET>
-  x-cid: <CID>
-
-  {
-    "id": "<ORGANIZATION_USER_UUID>",
-    "phone": "6285882955873",
-    "designation": "Teknisi Tambak"
-  }
-  ```
+#### B. Group Message Handling (`@BOT <Isi Pesan>`)
+When a message is received in a registered WhatsApp Group:
+1. **Check Mention:** Verify if the message mentions the bot (e.g. `@BOT`, `@Hermes`, or `@AqueraBot`).
+2. **Resolve Group CID:**
+   Call `GET /api/v1/whatsapp-groups?group_jid=<GROUP_JID>`.
+   - Use the returned `data.cid` as the `x-cid` header.
+3. **Identify Sender within Group:**
+   Call `GET /api/v1/user-context?phone=<SENDER_PHONE>`.
+   - Confirm sender's name and role for permission check (e.g. only Admins/Technicians can record harvests or delete records).
+4. **Process the User Request:**
+   Understand the natural language query, call the relevant Aquera REST API endpoint, and reply clearly with concise, structured Indonesian or English response.
+5. **If Group is Unregistered:**
+   If a message is addressed to the bot in an unlinked group:
+   > *"Grup ini belum terhubung ke tambak Aquera. Untuk menghubungkannya, buat kode pairing di Dashboard Aquera (Settings > WhatsApp Bot Integration), lalu ketik: `/link <KODE_PAIRING>` di grup ini."*
 
 ---
 
-## Procedure for Farm Mutations
+## 100% Aquera Domain Knowledge & Glossary
 
-### 1. Context Resolution & ID Lookup
-Most update (`PUT`) and delete (`DELETE`) operations require an explicit entity UUID (`id`). When a user mentions an entity by human name (e.g. *"Kolam A1"* or *"Grobest No. 1"*):
-- First call the corresponding `GET` endpoint (e.g., `GET /api/v1/ponds`).
-- Search the returned array for the matching name to extract its UUID `id`.
-- Proceed with the mutation using the discovered UUID.
+Hermes is fully equipped with deep domain understanding of Indonesian shrimp aquaculture (Litopenaeus vannamei / Udang Vaname) and Aquera's architecture:
 
-### 2. Executing Mutations (POST, PUT, DELETE)
-- Always pass both `Authorization: Bearer <SECRET>` and `x-cid: <CID>`.
-- For `POST` and `PUT`, format the body as JSON matching the schema in `openapi.json`.
-- For `DELETE`, supply the UUID in the query string (e.g., `DELETE /api/v1/ponds?id=<UUID>` or `DELETE /api/v1/whatsapp-groups?group_jid=<JID>`).
+### 1. Key Shrimp Farming Metrics & Formulas
+- **DOC (Day of Cultivation / Umur Budidaya):** Jumlah hari sejak tebar benur (`stocked_at`).
+  $$\text{DOC} = \text{Current Date} - \text{Stocking Date}$$
+- **ABW (Average Body Weight / Berat Rata-rata Udang):** Bobot rata-rata 1 ekor udang dalam gram (misal: 14.5 g).
+- **Size (Ukuran Panen):** Jumlah ekor udang per 1 kilogram.
+  $$\text{Size} = \frac{1000}{\text{ABW (gram)}}$$
+- **ADG (Average Daily Gain / Pertambahan Bobot Harian):** Pertambahan berat udang per hari (gram/hari).
+  $$\text{ADG} = \frac{\text{ABW}_2 - \text{ABW}_1}{\Delta \text{Hari}}$$
+- **SR (Survival Rate / Tingkat Kelangsungan Hidup):** Estimasi persentase populasi udang yang masih hidup.
+  $$\text{SR (\%)} = \frac{\text{Populasi Sekarang}}{\text{Populasi Tebar Awal}} \times 100\%$$
+- **Biomass (Estimasi Total Bobot Udang di Kolam):**
+  $$\text{Biomassa (kg)} = \frac{\text{Populasi Hidup} \times \text{ABW (g)}}{1000}$$
+- **FCR (Feed Conversion Ratio / Rasio Konversi Pakan):** Efisiensi pakan terhadap pertumbuhan biomassa. FCR lebih rendah (< 1.3) berarti sangat efisien.
+  $$\text{FCR} = \frac{\text{Total Pakan Kumulatif (kg)}}{\text{Total Pertambahan Biomassa (kg)}}$$
 
-### 3. Error Handling
-- **401 Unauthorized:** Secret key is missing or invalid. Check `AQUERA_API_SECRET`.
-- **403 Forbidden:** Organization CID is missing or inactive. Check `x-cid` value.
-- **404 Not Found:** User phone or group JID not found in Aquera database. Prompt user to register in Dashboard Settings.
-- **400 Bad Request:** Missing required fields or schema validation failed. Re-check `openapi.json`.
-- **500 Server Error:** Database connectivity issue. Call `GET /api/v1/health` to diagnose.
+### 2. Water Quality Standards (Kualitas Air Tambak Vaname)
+- **DO (Dissolved Oxygen / Oksigen Terlarut):** Optimal 4.0 – 7.0 ppm (kritis jika < 3.0 ppm).
+- **pH (Derajat Keasaman):** Optimal 7.5 – 8.5 (fluktuasi pagi-sore maks 0.5).
+- **Salinitas:** Optimal 15 – 25 ppt.
+- **Suhu Air:** Optimal 28°C – 31°C.
+- **Alkalinitas:** Optimal 100 – 150 ppm.
+- **Amoniak (NH3):** < 0.1 ppm; **Nitrit (NO2):** < 1.0 ppm.
 
-## Pitfalls
+---
 
-- **Missing `x-cid` Header:** Aquera is strictly multi-tenant. Requests to farm operations without `x-cid` return 401/403. Auto-resolve it first using `/user-context?phone=...` or `/whatsapp-groups?group_jid=...`.
-- **Phone Number Normalization:** Indonesian numbers starting with `08xxx` or `+628xxx` are automatically normalized by the API, but passing `628xxx` directly is recommended.
-- **Direct Deletions without Confirmation:** Always confirm with the user before executing destructive `DELETE` actions.
-- **Harvest Batching:** Harvest details expect an array of size and quantity entries: `[{ size: 50, qty_kg: 500, price_per_kg: 73000 }]`.
-- **Date Format:** All date fields must follow ISO 8601 `YYYY-MM-DD` or full ISO timestamp `YYYY-MM-DDTHH:mm:ssZ`.
+## API Quick Reference Table
 
-## Verification
+All endpoints (except `/health` and `/user-context?phone=...`) require `Authorization: Bearer <AQUERA_API_SECRET>` and `x-cid: <CID>`.
 
-1. Run `GET /api/v1/health` and verify `status: "healthy"`.
-2. Test user identification via phone: `GET /api/v1/user-context?phone=6285882955873`.
-3. Test WhatsApp group lookup: `GET /api/v1/whatsapp-groups` with `x-cid`.
-4. Test team member listing with phone numbers: `GET /api/v1/team` with `x-cid`.
+| Category | Method | Endpoint | Description | Key Parameters |
+|---|---|---|---|---|
+| **Health** | `GET` | `/health` | Check server & Supabase status | None |
+| **Auth / Phone** | `GET` | `/user-context?phone={phone}` | Auto-detect user & CID by phone | `phone` (`628xxx` / `08xxx`) |
+| **Auth / Profile** | `GET` | `/user-context` | Get current user context & roles | `user_id` (optional) |
+| **Auth / Profile** | `PUT` | `/user-context` | Update user phone or full name | `phone`, `full_name`, `user_id` |
+| **Summary** | `GET` | `/summary` | Dashboard summary KPI & metrics | None |
+| **Farm Sites** | `GET` / `POST` / `PUT` / `DELETE` | `/farm-sites` | Manage farm locations (lokasi tambak) | `name`, `address`, `area_m2` |
+| **Ponds** | `GET` / `POST` / `PUT` / `DELETE` | `/ponds` | Manage ponds (petak kolam) | `farm_site_id`, `name`, `area_m2`, `depth_m` |
+| **Cycles** | `GET` / `POST` / `PUT` / `DELETE` | `/cycles` | Manage cultivation cycles | `pond_id`, `name`, `start_date`, `status` |
+| **Stocking** | `GET` / `POST` / `PUT` / `DELETE` | `/stocking` | Seedling stocking (tebar benur DOC 0) | `cycle_id`, `quantity_seed`, `species`, `pl_stage` |
+| **Feed Log** | `GET` / `POST` / `PUT` / `DELETE` | `/feed-log` | Record daily feed distribution | `cycle_id`, `pond_id`, `feed_brand_id`, `feed_given_kg` |
+| **Sampling** | `GET` / `POST` / `PUT` / `DELETE` | `/sampling` | Water quality & ABW growth samplings | `cycle_id`, `abw_gram`, `do_ppm`, `ph`, `salinity_ppt` |
+| **Feed Brands** | `GET` / `POST` / `PUT` / `DELETE` | `/feed-brands` | Manage feed manufacturers & brands | `name`, `protein_pct` |
+| **Harvest** | `GET` / `POST` / `PUT` / `DELETE` | `/harvest` | Partial & total harvest records | `cycle_id`, `pond_id`, `harvest_type`, `details` |
+| **Invoices** | `GET` / `POST` / `PUT` / `DELETE` | `/invoice` | Shrimp sales buyer invoices | `buyer_name`, `invoice_date`, `items` |
+| **Reports** | `GET` | `/reports` | End-of-cycle and financial reports | `cycle_id` |
+| **Team** | `GET` / `PUT` | `/team` | Team members with phone numbers | `phone`, `designation`, `role` |
+| **WhatsApp Group**| `GET` / `POST` / `DELETE` | `/whatsapp-groups` | Lookup, list, or disconnect groups | `group_jid`, `is_active` |
+| **WhatsApp Link** | `POST` | `/whatsapp/link` | Link group via pairing code | `code`, `group_jid`, `group_name` |
+
+---
+
+## Example Conversational Scenarios
+
+### Scenario 1: Checking Pond Status in Group
+> **User (@group):** "@BOT bagaimana kondisi kolam A1 dan A2 hari ini?"
+> **Hermes Action:**
+> 1. Resolve group CID via `GET /whatsapp-groups?group_jid=...`.
+> 2. Query `GET /ponds`, `GET /feed-log`, `GET /sampling`.
+> 3. Reply:
+>    *"📊 **Status Kolam A1 & A2 (DOC 45):**\n- **Kolam A1:** ABW 12.8g (Size ~78), Pakan hari ini 32 kg, DO 5.8 ppm, pH 7.9 (Normal).\n- **Kolam A2:** ABW 13.2g (Size ~75), Pakan hari ini 35 kg, DO 6.1 ppm, pH 8.0 (Sangat Baik).\nEstimasi total biomassa aktif: ~1.450 kg."*
+
+### Scenario 2: Logging Daily Feed
+> **User:** "@BOT tolong catat pakan kolam B3 barusan 15 kg pakan I-Gro."
+> **Hermes Action:**
+> 1. Lookup pond ID for "B3" and feed brand ID for "I-Gro".
+> 2. Get active cycle for pond B3.
+> 3. Call `POST /api/v1/feed-log` with `{ pond_id, cycle_id, feed_brand_id, feed_given_kg: 15, fed_at: new Date().toISOString() }`.
+> 4. Reply:
+>    *"✅ **Pemberian Pakan Berhasil Dicatat!**\n- **Kolam:** B3\n- **Jumlah:** 15 kg (I-Gro)\n- **Waktu:** 08:30 WIB\nTotal pakan kolam B3 hari ini menjadi 45 kg."*
+
+---
+
+## Pitfalls & Best Practices
+
+1. **Multi-Tenant Isolation:** Never execute mutations or queries without `x-cid` (except `/health` and `/user-context?phone=...`). Always auto-resolve `CID` from phone number or group JID.
+2. **Phone Number Standardization:** Accepts both Indonesian format (`0858...`) and international format (`62858...`). The API handles normalization automatically.
+3. **Friendly & Professional Indonesian:** Communicate with shrimp farmers using familiar Indonesian aquaculture terms (*anco, sampling, tebar benur, panen parsial, bobot rata-rata, pakan harian*).

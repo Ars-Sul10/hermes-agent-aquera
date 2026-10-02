@@ -3,7 +3,7 @@
   "info": {
     "title": "Aquera Shrimp Farm Management API",
     "version": "1.0.0",
-    "description": "Spesifikasi resmi OpenAPI 3.1.0 Aquera REST API. Dirancang untuk AI Agent (Hermes, Grok, ChatGPT), WhatsApp Bot, Mobile App, dan Third-Party Integrations. Seluruh operasi mutasi (POST, PUT, DELETE) dan query (GET) terisolasi berdasarkan Organization Tenant (CID) melalui Unified Service Layer.",
+    "description": "Spesifikasi resmi OpenAPI 3.1.0 Aquera REST API. Dirancang untuk AI Agent (Hermes, Grok, ChatGPT), WhatsApp Bot (@BOT mention & Japri/DM Phone Auth), Mobile App, dan Third-Party Integrations. Seluruh operasi mutasi (POST, PUT, DELETE) dan query (GET) terisolasi berdasarkan Organization Tenant (CID) melalui Unified Service Layer.",
     "contact": {
       "name": "Aquera Engineering Team",
       "url": "https://aquera.id"
@@ -98,7 +98,7 @@
           "User Context"
         ],
         "summary": "Ambil konteks pengguna (bisa via user_id atau phone), role, dan hak akses",
-        "description": "Memberikan informasi siapa user yang saat ini menjalankan aksi, jabatannya, nomor telepon, serta permission module. AI Bot WhatsApp dapat mengirim parameter query `phone` untuk mendeteksi user dan tenant CID secara otomatis tanpa perlu tahu CID di awal.",
+        "description": "Mengambil profil pengguna, role, designation, dan CID tenant. Mendukung parameter query '?phone=628xxx' untuk autentikasi otomatis bot WhatsApp saat user chat pribadi (Japri) berdasarkan kecocokan kolom phone di tabel user_public dan organization_user.",
         "parameters": [
           {
             "name": "user_id",
@@ -1950,7 +1950,7 @@
           "WhatsApp Integration"
         ],
         "summary": "Hubungkan grup WhatsApp ke organisasi Aquera menggunakan kode pairing",
-        "description": "Dipanggil oleh Hermes Bot saat menerima kode pairing (/link <KODE>) dari anggota grup. Bot mengirimkan code, group_jid, group_name, dan sender_phone. Aquera memverifikasi kode dan menautkan grup ke organisasi.",
+        "description": "Menghubungkan grup WhatsApp ke organisasi tambak Aquera menggunakan kode pairing 15 menit (format: AQ-XXXX) yang digenerate dari Dashboard Pengaturan. Dipicu saat user mengetik '/link <KODE>' di dalam grup WhatsApp.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2040,7 +2040,7 @@
           "WhatsApp Integration"
         ],
         "summary": "Daftar grup WhatsApp terhubung atau lookup grup berdasarkan group_jid",
-        "description": "Mengambil daftar grup WhatsApp milik organisasi tambak (CID), atau melakukan pencarian single group berdasarkan group_jid untuk mendeteksi konteks CID organisasi pengirim bagi AI Bot Hermes.",
+        "description": "Mencari atau mendaftar grup WhatsApp yang terhubung ke organisasi tambak. Mendukung query '?group_jid=120363xxx@g.us' untuk lookup instan saat bot di-mention (@BOT) di dalam grup.",
         "parameters": [
           {
             "name": "group_jid",
