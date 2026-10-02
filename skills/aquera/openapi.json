@@ -97,8 +97,8 @@
         "tags": [
           "User Context"
         ],
-        "summary": "Ambil konteks pengguna, role, dan hak akses",
-        "description": "Memberikan informasi siapa user yang saat ini menjalankan aksi, jabatannya, serta permission module (finance, report, hr). Sangat penting bagi AI Hermes untuk membatasi aksi sensitif berdasarkan role user.",
+        "summary": "Ambil konteks pengguna (bisa via user_id atau phone), role, dan hak akses",
+        "description": "Memberikan informasi siapa user yang saat ini menjalankan aksi, jabatannya, nomor telepon, serta permission module. AI Bot WhatsApp dapat mengirim parameter query `phone` untuk mendeteksi user dan tenant CID secara otomatis tanpa perlu tahu CID di awal.",
         "parameters": [
           {
             "name": "user_id",
@@ -109,6 +109,16 @@
               "format": "uuid"
             },
             "description": "UUID user opsional untuk melihat konteks user tertentu"
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Nomor WhatsApp / telepon pengguna (misal: 6285882955873 atau 085882955873). Sangat berguna bagi AI Bot untuk mencocokkan sender WhatsApp ke CID tenant & role.",
+            "example": "6285882955873"
           }
         ],
         "responses": {
@@ -121,6 +131,146 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateUserContextPhone",
+        "tags": [
+          "User Context"
+        ],
+        "summary": "Perbarui nomor telepon / WhatsApp pengguna dan nama profil",
+        "description": "Memperbarui kolom phone pada public.user_public dan public.organization_user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID user (opsional jika nomor telepon lama cocok)"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Nomor WhatsApp baru format 628xxx atau 08xxx",
+                    "example": "6285882955873"
+                  },
+                  "full_name": {
+                    "type": "string",
+                    "description": "Nama lengkap pengguna",
+                    "example": "Budi Santoso"
+                  },
+                  "cid": {
+                    "type": "string",
+                    "description": "CID organisasi aktif (opsional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kontak pengguna berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Data kontak / nomor telepon pengguna berhasil diperbarui."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateUserContextPhone",
+        "tags": [
+          "User Context"
+        ],
+        "summary": "Perbarui nomor telepon / WhatsApp pengguna dan nama profil",
+        "description": "Memperbarui kolom phone pada public.user_public dan public.organization_user.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID user (opsional jika nomor telepon lama cocok)"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Nomor WhatsApp baru format 628xxx atau 08xxx",
+                    "example": "6285882955873"
+                  },
+                  "full_name": {
+                    "type": "string",
+                    "description": "Nama lengkap pengguna",
+                    "example": "Budi Santoso"
+                  },
+                  "cid": {
+                    "type": "string",
+                    "description": "CID organisasi aktif (opsional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Kontak pengguna berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Data kontak / nomor telepon pengguna berhasil diperbarui."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -1538,7 +1688,7 @@
         "tags": [
           "Team"
         ],
-        "summary": "Daftar anggota tim dan undangan",
+        "summary": "Daftar anggota tim (termasuk nomor telepon WhatsApp) dan undangan",
         "description": "Mengambil daftar anggota organisasi yang aktif beserta undangan pending.",
         "responses": {
           "200": {
@@ -1552,13 +1702,55 @@
                       "type": "boolean",
                       "example": true
                     },
+                    "total": {
+                      "type": "integer",
+                      "example": 5
+                    },
                     "members": {
                       "type": "array",
                       "items": {
-                        "type": "object"
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "user_id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "full_name": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "Budi Santoso"
+                          },
+                          "phone": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "6285882955873",
+                            "description": "Nomor WhatsApp terdaftar di organization_user / user_public"
+                          },
+                          "designation": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "Manajer Tambak"
+                          },
+                          "role": {
+                            "type": "string",
+                            "example": "admin"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "active"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
                       }
                     },
-                    "invitations": {
+                    "invites": {
                       "type": "array",
                       "items": {
                         "type": "object"
@@ -1568,6 +1760,549 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTeamMember",
+        "tags": [
+          "Team"
+        ],
+        "summary": "Perbarui kontak telepon (phone), jabatan, atau peran anggota tim",
+        "description": "Memperbarui nomor telepon, designation, role, atau status anggota pada organization_user dan menyinkronkan ke user_public.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID baris organization_user"
+                  },
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID user auth"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "6285882955873",
+                    "description": "Nomor HP / WhatsApp format internasional tanpa +"
+                  },
+                  "designation": {
+                    "type": "string",
+                    "example": "Teknisi Tambak"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "member",
+                      "viewer"
+                    ],
+                    "example": "member"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "suspended"
+                    ],
+                    "example": "active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data anggota tim berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Data anggota tim berhasil diperbarui."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateTeamMember",
+        "tags": [
+          "Team"
+        ],
+        "summary": "Perbarui kontak telepon (phone), jabatan, atau peran anggota tim",
+        "description": "Memperbarui nomor telepon, designation, role, atau status anggota pada organization_user dan menyinkronkan ke user_public.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID baris organization_user"
+                  },
+                  "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID user auth"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "6285882955873",
+                    "description": "Nomor HP / WhatsApp format internasional tanpa +"
+                  },
+                  "designation": {
+                    "type": "string",
+                    "example": "Teknisi Tambak"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "member",
+                      "viewer"
+                    ],
+                    "example": "member"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "suspended"
+                    ],
+                    "example": "active"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Data anggota tim berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Data anggota tim berhasil diperbarui."
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/api/v1/whatsapp/link": {
+      "post": {
+        "operationId": "linkWhatsAppGroup",
+        "tags": [
+          "WhatsApp Integration"
+        ],
+        "summary": "Hubungkan grup WhatsApp ke organisasi Aquera menggunakan kode pairing",
+        "description": "Dipanggil oleh Hermes Bot saat menerima kode pairing (/link <KODE>) dari anggota grup. Bot mengirimkan code, group_jid, group_name, dan sender_phone. Aquera memverifikasi kode dan menautkan grup ke organisasi.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code",
+                  "group_jid"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "description": "Kode pairing dari Dashboard Aquera (Settings > WhatsApp Bot Integration)",
+                    "example": "AQ-7K2M"
+                  },
+                  "group_jid": {
+                    "type": "string",
+                    "description": "WhatsApp Group JID (format: 628xxx-1234@g.us)",
+                    "example": "6281234567890-1234567890@g.us"
+                  },
+                  "group_name": {
+                    "type": "string",
+                    "description": "Nama grup WhatsApp (opsional)",
+                    "example": "Tim Tambak Muara Baru"
+                  },
+                  "sender_phone": {
+                    "type": "string",
+                    "description": "Nomor HP pengirim dalam format internasional tanpa +",
+                    "example": "6285882955873"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grup berhasil ditautkan ke organisasi",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Grup WhatsApp berhasil dihubungkan!"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "organization_name": {
+                          "type": "string",
+                          "example": "PT Tambak Jaya"
+                        },
+                        "cid": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "group_jid": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Kode tidak valid, kedaluwarsa, atau parameter kurang"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/api/v1/whatsapp-groups": {
+      "get": {
+        "operationId": "listWhatsAppGroups",
+        "tags": [
+          "WhatsApp Integration"
+        ],
+        "summary": "Daftar grup WhatsApp terhubung atau lookup grup berdasarkan group_jid",
+        "description": "Mengambil daftar grup WhatsApp milik organisasi tambak (CID), atau melakukan pencarian single group berdasarkan group_jid untuk mendeteksi konteks CID organisasi pengirim bagi AI Bot Hermes.",
+        "parameters": [
+          {
+            "name": "group_jid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "WhatsApp Group JID (misal: 628xxx-1234@g.us) untuk lookup organisasi tambak",
+            "example": "628123456789-1234567890@g.us"
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter grup berdasarkan status aktif (true / false)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar grup atau data detail grup WhatsApp",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/WhatsAppGroup"
+                          }
+                        },
+                        {
+                          "$ref": "#/components/schemas/WhatsAppGroup"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "description": "Grup WhatsApp belum terhubung ke organisasi manapun"
+          }
+        }
+      },
+      "post": {
+        "operationId": "registerWhatsAppGroup",
+        "tags": [
+          "WhatsApp Integration"
+        ],
+        "summary": "Daftarkan atau hubungkan grup WhatsApp baru ke organisasi",
+        "description": "Mendaftarkan Group JID WhatsApp ke organisasi tambak tertentu.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "group_jid"
+                ],
+                "properties": {
+                  "group_jid": {
+                    "type": "string",
+                    "description": "WhatsApp Group JID (format: 628xxx-timestamp@g.us)",
+                    "example": "628123456789-1234567890@g.us"
+                  },
+                  "group_name": {
+                    "type": "string",
+                    "description": "Nama grup WhatsApp",
+                    "example": "Tim Tambak Muara Baru"
+                  },
+                  "paired_by": {
+                    "type": "string",
+                    "description": "Nama atau nomor pengirim yang melakukan pairing",
+                    "example": "6285882955873"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "cid": {
+                    "type": "string",
+                    "description": "CID organisasi (jika tidak disertakan via header x-cid)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Grup WhatsApp berhasil didaftarkan / diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Grup WhatsApp berhasil didaftarkan / diperbarui."
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WhatsAppGroup"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateWhatsAppGroup",
+        "tags": [
+          "WhatsApp Integration"
+        ],
+        "summary": "Perbarui nama, status aktif, atau data grup WhatsApp",
+        "description": "Memperbarui data grup WhatsApp berdasarkan ID atau group_jid.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "group_jid": {
+                    "type": "string",
+                    "example": "628123456789-1234567890@g.us"
+                  },
+                  "group_name": {
+                    "type": "string",
+                    "example": "Tim Tambak Blok B"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "paired_by": {
+                    "type": "string",
+                    "example": "6285882955873"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Grup WhatsApp berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Grup WhatsApp berhasil diperbarui."
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/WhatsAppGroup"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteWhatsAppGroup",
+        "tags": [
+          "WhatsApp Integration"
+        ],
+        "summary": "Hapus atau putuskan tautan grup WhatsApp dari organisasi",
+        "description": "Memutuskan hubungan grup WhatsApp dari organisasi tambak.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "UUID grup WhatsApp yang ingin dihapus"
+          },
+          {
+            "name": "group_jid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "WhatsApp Group JID yang ingin diputuskan"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grup WhatsApp berhasil dihapus",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Grup WhatsApp berhasil dihapus dari organisasi."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationError"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedError"
@@ -1760,6 +2495,12 @@
                     "example": false
                   }
                 }
+              },
+              "phone": {
+                "type": "string",
+                "nullable": true,
+                "example": "6285882955873",
+                "description": "Nomor telepon / WhatsApp pengguna terdaftar pada user_public atau organization_user"
               }
             }
           }
@@ -2305,7 +3046,7 @@
           },
           "temp_c": {
             "type": "number",
-            "description": "Suhu air kolam (°C)",
+            "description": "Suhu air kolam (Â°C)",
             "example": 29.2
           }
         }
@@ -2738,7 +3479,57 @@
             "description": "Nama pembeli baru"
           }
         }
+      },
+      "WhatsAppGroup": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cid": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organization_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "PT Tambak Jaya"
+          },
+          "group_jid": {
+            "type": "string",
+            "example": "628123456789-1234567890@g.us"
+          },
+          "group_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Tim Tambak Muara Baru"
+          },
+          "paired_by": {
+            "type": "string",
+            "nullable": true,
+            "example": "6285882955873"
+          },
+          "is_active": {
+            "type": "boolean",
+            "example": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
-  }
+  },
+  "tags": [
+    {
+      "name": "WhatsApp Integration",
+      "description": "Integrasi WhatsApp Bot Hermes, manajemen grup tambak, dan pairing code"
+    }
+  ]
 }
