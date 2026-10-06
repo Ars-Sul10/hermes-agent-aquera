@@ -98,7 +98,7 @@
           "User Context"
         ],
         "summary": "Ambil konteks pengguna (bisa via user_id atau phone), role, dan hak akses",
-        "description": "Mengambil profil pengguna, role, designation, dan CID tenant. Mendukung parameter query '?phone=628xxx' untuk autentikasi otomatis bot WhatsApp saat user chat pribadi (Japri) berdasarkan kecocokan kolom phone di tabel user_public dan organization_user.",
+        "description": "Mengambil profil pengguna, role, designation, dan CID tenant. Mendukung parameter query '?phone=628xxx' untuk autentikasi dan validasi otomatis nomor pengirim di database Supabase (baik saat user chat pribadi maupun saat mention di grup WhatsApp untuk verifikasi hak akses RBAC anggota tim).",
         "parameters": [
           {
             "name": "user_id",

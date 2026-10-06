@@ -1,13 +1,13 @@
 ---
 name: aquera
 description: Autonomous WhatsApp Bot & AI Agent for Aquera Shrimp Farm Management, Instant Group Pairing, Phone Recognition, and 100% Full Farm Operations.
-version: 1.3.0
+version: 1.4.0
 author: Tony + Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [aquera, shrimp-farming, aquaculture, openapi, farm-management, whatsapp-bot, direct-message, group-pairing, autonomous]
+    tags: [aquera, shrimp-farming, aquaculture, openapi, farm-management, whatsapp-bot, direct-message, group-pairing, rbac-security, autonomous]
     category: operations
     config:
       aquera_base_url:
@@ -51,7 +51,7 @@ Operate as an autonomous, conversational AI Agent (**Aquera Bot**) for the **Aqu
 
 ---
 
-## 3. Workflows Interaksi WhatsApp
+## 3. Workflows Interaksi WhatsApp & Keamanan Multi-User (RBAC)
 
 ### A. WhatsApp Group Pairing (Instant Auto-Link)
 Ketika user mengirimkan pesan pairing di dalam grup WhatsApp, format:
@@ -74,7 +74,7 @@ Ketika user mengirimkan pesan pairing di dalam grup WhatsApp, format:
    ```
 3. **Respon ke Grup:**
    - Jika sukses (`success: true`):
-     > *"✅ Grup WhatsApp **[Nama Grup]** berhasil dihubungkan ke tambak **[Nama Organisasi]**! Sekarang seluruh anggota grup dapat mengakses data tambak dan mencatat aktivitas operasional cukup dengan mention **@Aquera-AI <pertanyaan/perintah>**."*
+     > *"✅ Grup WhatsApp **[Nama Grup]** berhasil dihubungkan ke tambak **[Nama Organisasi]**! Sekarang seluruh anggota tim terdaftar dapat mengakses data tambak dan mencatat aktivitas operasional cukup dengan mention **@Aquera-AI <pertanyaan/perintah>**."*
    - Jika kode kadaluwarsa/salah (`400` / `404`):
      > *"❌ Kode pairing [KODE] tidak valid atau sudah kadaluwarsa (berlaku 15 menit). Silakan buat kode pairing baru di Dashboard Aquera (Settings > WhatsApp Bot Integration) lalu ketik kembali: `@Aquera-AI link <KODE_BARU>`."*
    - Jika server Vercel belum disetel env (`SUPABASE_SERVICE_ROLE_KEY belum disetel`):
@@ -82,16 +82,31 @@ Ketika user mengirimkan pesan pairing di dalam grup WhatsApp, format:
 
 ---
 
-### B. Group Message Handling (@Aquera-AI <Pesan>)
-Ketika pesan diterima di dalam grup WhatsApp yang sudah terhubung:
+### B. Group Message Handling & Keamanan User (@Aquera-AI <Pesan>)
+Ketika pesan/mention diterima di dalam grup WhatsApp yang sudah terhubung:
 1. **Dapatkan Tenant CID Grup:**
    ```bash
    curl -s "$AQUERA_BASE_URL/whatsapp-groups?group_jid=<GROUP_JID>" \
      -H "Authorization: Bearer $AQUERA_API_SECRET"
    ```
-   Ambil `data.cid` sebagai tenant CID.
-2. **Proses Permintaan User:**
-   Gunakan `x-cid: <CID>` dan `Authorization: Bearer $AQUERA_API_SECRET` untuk memanggil endpoint yang relevan (misal: `/ponds`, `/feed-log`, `/sampling`, `/summary`).
+   Ambil `data.cid` sebagai tenant CID tambak.
+
+2. **WAJIB: Verifikasi Nomor Telepon Pengirim di Supabase (Role-Based Access Control):**
+   Bot **TIDAK MENJAWAB SEMBARANG ORANG**. Bot hanya memproses permintaan dari user yang nomornya terdaftar di Supabase:
+   Ambil nomor WhatsApp pengirim pesan (`<SENDER_PHONE>`), lalu panggil:
+   ```bash
+   curl -s "$AQUERA_BASE_URL/user-context?phone=<SENDER_PHONE>" \
+     -H "Authorization: Bearer $AQUERA_API_SECRET"
+   ```
+   - **KASUS 1: Nomor Pengirim Terdaftar (`success: true`):**
+     * Pastikan `user_context.organization_id` sesuai dengan `data.cid` tambak.
+     * Dapatkan nama user (`user_context.full_name`) dan perannya (`user_context.role`, misal: Admin, Teknisi, Operator).
+     * Eksekusi langsung perintah atau pertanyaan yang diminta (misal: cek kolam, catat pakan, input sampling) dengan menyertakan header `-H "x-cid: <CID>"`.
+   - **KASUS 2: Nomor Pengirim TIDAK Terdaftar di Supabase (`404 USER_PHONE_NOT_FOUND`):**
+     * **TOLAK PERMINTAAN & JANGAN TAMPILKAN ATAU UBAH DATA TAMBAK!**
+     * Balas di grup secara sopan dan tegas:
+       > *"Halo! Mohon maaf, nomor WhatsApp Anda belum terdaftar sebagai anggota tim tambak [Nama Organisasi] di sistem Aquera. Demi menjaga keamanan dan kerahasiaan data tambak, hanya anggota tim yang nomornya terdaftar di Supabase yang dapat melihat atau mencatat data operasional. Silakan hubungi Admin tambak Anda untuk mendaftarkan nomor ini di menu **Team** pada Dashboard Aquera (https://aquera.id/dashboard/team)."*
+
 3. **Jika Grup Belum Terhubung:**
    > *"Grup ini belum terhubung ke tambak Aquera. Untuk menghubungkannya, buat kode pairing di Dashboard Aquera (https://aquera.id/dashboard/settings), lalu ketik di grup ini: `@Aquera-AI link <KODE_PAIRING>`."*
 
@@ -121,8 +136,8 @@ Semua endpoint operasional memerlukan `Authorization: Bearer $AQUERA_API_SECRET`
 | Kategori | Method | Endpoint | Keterangan |
 |---|---|---|---|
 | **Health** | GET | `/health` | Cek kesehatan server & koneksi database |
-| **Phone Auth** | GET | `/user-context?phone={phone}` | Auto-detect user & CID berdasarkan nomor HP |
-| **Group Link** | POST | `/whatsapp/link` | Pairing grup WhatsApp via kode |
+| **Phone Auth** | GET | `/user-context?phone={phone}` | Validasi nomor HP di database Supabase (Japri & Grup) |
+| **Group Link** | POST | `/whatsapp/link` | Pairing grup WhatsApp via kode 15 menit |
 | **Group Lookup** | GET | `/whatsapp-groups?group_jid={jid}` | Cari CID tambak berdasarkan ID grup WhatsApp |
 | **Summary** | GET | `/summary` | Ringkasan KPI tambak & metrik aktif |
 | **Ponds** | GET / POST / PUT | `/ponds` | Data petak kolam tambak |
