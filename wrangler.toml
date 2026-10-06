@@ -1,0 +1,7 @@
+name = "hermes-agent-aquera"
+main = "worker.js"
+compatibility_date = "2024-10-01"
+
+# KV Namespace binding (AQUERA_KV linked via Cloudflare Dashboard or ID)
+# [[kv_namespaces]]
+# binding = "AQUERA_KV"
