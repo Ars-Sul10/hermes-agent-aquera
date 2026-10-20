@@ -2812,6 +2812,32 @@
             "type": "integer",
             "description": "Target size saat panen (ekor per kg)",
             "example": 35
+          },
+          "target_survival_pct": {
+            "type": "number",
+            "description": "Target Survival Rate / SR (%) saat panen",
+            "example": 85
+          },
+          "target_fcr": {
+            "type": "number",
+            "description": "Target Feed Conversion Ratio (FCR)",
+            "example": 1.2
+          },
+          "target_harvest_biomass_kg": {
+            "type": "number",
+            "description": "Target total estimasi biomassa panen (kg)",
+            "example": 4200
+          },
+          "notes": {
+            "type": "string",
+            "description": "Catatan atau keterangan siklus budidaya",
+            "example": "Siklus baru via WhatsApp Bot"
+          },
+          "planned_harvest_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Rencana tanggal panen (YYYY-MM-DD)",
+            "example": "2027-01-20"
           }
         }
       },
