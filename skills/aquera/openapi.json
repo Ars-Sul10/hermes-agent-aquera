@@ -2800,8 +2800,8 @@
           "target_harvest_date": {
             "type": "string",
             "format": "date",
-            "description": "Target tanggal panen",
-            "example": "2026-12-15"
+            "description": "Target tanggal panen (YYYY-MM-DD)",
+            "example": "2027-01-20"
           },
           "initial_count": {
             "type": "integer",
@@ -2838,6 +2838,11 @@
             "format": "date",
             "description": "Rencana tanggal panen (YYYY-MM-DD)",
             "example": "2027-01-20"
+          },
+          "target_sr": {
+            "type": "number",
+            "description": "Target Survival Rate / SR (%) saat panen (alias target_survival_pct)",
+            "example": 85
           }
         }
       },
